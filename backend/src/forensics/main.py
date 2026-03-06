@@ -218,6 +218,9 @@ async def get_price_range(
     to_ts: int = Query(..., description="End timestamp in unix ms"),
 ):
     """Get historical KAS/USD prices for a time range."""
+    max_range_ms = 365 * 24 * 60 * 60 * 1000  # 1 year
+    if to_ts <= from_ts or to_ts - from_ts > max_range_ms:
+        raise HTTPException(status_code=400, detail="Invalid or excessive price range")
     prices = await price_client.get_price_range(from_ts, to_ts)
     return [PricePoint(timestamp=ts, price_usd=p) for ts, p in prices]
 

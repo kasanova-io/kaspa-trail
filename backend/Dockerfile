@@ -53,10 +53,15 @@ COPY --from=builder /opt/venv /opt/venv
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+RUN addgroup --system --gid 1001 forensics && \
+    adduser --system --uid 1001 --ingroup forensics forensics
+
 WORKDIR /app
 
 COPY pyproject.toml ./
 COPY src/ ./src/
+
+USER forensics
 
 EXPOSE 80
 

@@ -66,7 +66,7 @@ class KaspaClient:
         resp = await self._client.get("/addresses/names")
         resp.raise_for_status()
         entries = resp.json()
-        return {e["address"]: e["name"] for e in entries}
+        return {e["address"]: e["name"] for e in entries if "address" in e and "name" in e}
 
     async def close(self):
         await self._client.aclose()
