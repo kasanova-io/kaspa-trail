@@ -366,7 +366,7 @@ const GraphView = forwardRef<GraphViewHandle, GraphViewProps>(function GraphView
       .append("svg")
       .attr("width", width)
       .attr("height", height)
-      .style("background", "#08080d")
+      .style("background", "#060810")
       .style("border-radius", "0.5rem");
 
     svgRef.current = svg.node();
@@ -437,9 +437,9 @@ const GraphView = forwardRef<GraphViewHandle, GraphViewProps>(function GraphView
 
     edgeGroup.append("text")
       .text((d) => d.label)
-      .attr("font-size", "7px").attr("font-family", "JetBrains Mono, monospace")
+      .attr("font-size", "7px").attr("font-family", "Victor Mono, JetBrains Mono, monospace")
       .attr("fill", "#8888a0").attr("text-anchor", "middle").attr("dy", -6)
-      .style("paint-order", "stroke").style("stroke", "#08080d").style("stroke-width", "3px")
+      .style("paint-order", "stroke").style("stroke", "#060810").style("stroke-width", "3px")
       .style("pointer-events", "none")
       .attr("class", "edge-label");
 
@@ -518,13 +518,13 @@ const GraphView = forwardRef<GraphViewHandle, GraphViewProps>(function GraphView
     nodeGroup.append("text")
       .text((d) => labels[d.id] || d.data.label)
       .attr("font-size", (d) => d.data.is_center ? "11px" : d.data.name ? "10px" : d.isP2sh ? "7px" : "9px")
-      .attr("font-family", "JetBrains Mono, monospace")
+      .attr("font-family", "Victor Mono, JetBrains Mono, monospace")
       .attr("font-weight", (d) => (d.data.is_center || d.data.name) ? "bold" : "normal")
       .attr("fill", (d) => labels[d.id] ? "#ff66aa" : (d.data.is_center || d.data.name) ? "#ffffff" : "#c0c0d0")
       .attr("text-anchor", "middle")
       .attr("dy", (d) => d.radius + 14)
       .style("paint-order", "stroke")
-      .style("stroke", "#0a0a0f")
+      .style("stroke", "#060810")
       .style("stroke-width", (d) => d.data.is_center ? "3px" : "2px")
       .style("pointer-events", "none");
 
@@ -621,10 +621,10 @@ const GraphView = forwardRef<GraphViewHandle, GraphViewProps>(function GraphView
 
   return (
     <div className="w-full h-full relative">
-      <div ref={containerRef} className="w-full h-full rounded-lg border border-[var(--color-border)]" />
+      <div ref={containerRef} className="w-full h-full rounded-lg graph-container" />
       {/* Legend */}
       {graph && (
-        <div className="absolute bottom-3 left-3 flex gap-1 text-[10px] text-[var(--color-text-muted)] bg-[#08080dcc] backdrop-blur-sm rounded px-2 py-1.5 border border-[var(--color-border)] flex-wrap max-w-[600px]">
+        <div className="absolute bottom-3 left-3 flex gap-1 text-[10px] text-[var(--color-text-muted)] graph-legend px-2 py-1.5 flex-wrap max-w-[600px]">
           {[
             { key: "incoming", swatch: <span className="w-3 h-0.5 bg-[#2ff2a8] inline-block rounded" />, label: "In" },
             { key: "outgoing", swatch: <span className="w-3 h-0.5 bg-[#ff4466] inline-block rounded" />, label: "Out" },
@@ -638,7 +638,7 @@ const GraphView = forwardRef<GraphViewHandle, GraphViewProps>(function GraphView
             { key: "fan_in", swatch: <span className="inline-block">⤵</span>, label: "Fan-in" },
           ].map(({ key, swatch, label }) => (
             <button key={key} onClick={() => highlightByFilter(key)}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer">
+              className="legend-btn flex items-center gap-1 text-[10px]">
               {swatch}
               {label}
             </button>
@@ -647,7 +647,7 @@ const GraphView = forwardRef<GraphViewHandle, GraphViewProps>(function GraphView
       )}
       {/* Minimap — D3-managed, updates on simulation tick */}
       {graph && (
-        <div className="absolute top-3 right-3 w-[140px] h-[90px] bg-[#08080dcc] backdrop-blur-sm rounded border border-[var(--color-border)] overflow-hidden">
+        <div className="absolute top-3 right-3 w-[140px] h-[90px] minimap">
           <svg ref={minimapSvgRef} className="w-full h-full" preserveAspectRatio="xMidYMid meet" />
         </div>
       )}

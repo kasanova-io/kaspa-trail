@@ -4,6 +4,7 @@
 "use client";
 
 import { sompiToKas, EXPLORER_BASE_URL, type TxSummary, type PricePoint, interpolatePrice, sompiToKasNum } from "@/lib/api";
+import { formatUsd, PROTOCOL_CHIP_STYLES } from "@/lib/format";
 
 interface TxListProps {
   transactions: TxSummary[];
@@ -30,12 +31,6 @@ function formatTime(ms: number): string {
   });
 }
 
-function formatUsd(amount: number): string {
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(2)}M`;
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(2)}K`;
-  return `$${amount.toFixed(2)}`;
-}
-
 const TX_TYPE_STYLES: Record<string, { label: string; bg: string; text: string }> = {
   kas: { label: "KAS", bg: "bg-[#3366aa22]", text: "text-[#6699dd]" },
   "krc20:deploy": { label: "KRC20 Deploy", bg: "bg-[#ff9f1a22]", text: "text-[#ff9f1a]" },
@@ -49,8 +44,8 @@ const TX_TYPE_STYLES: Record<string, { label: string; bg: string; text: string }
   "krc721:transfer": { label: "KRC721 Transfer", bg: "bg-[#e6557022]", text: "text-[#e65570]" },
   "krc721:mint": { label: "KRC721 Mint", bg: "bg-[#e6557022]", text: "text-[#e65570]" },
   "kasia:message": { label: "Kasia Message", bg: "bg-[#55bbff22]", text: "text-[#55bbff]" },
-  "p2sh:commit": { label: "P2SH Commit", bg: "bg-[#8888a022]", text: "text-[#8888a0]" },
-  "p2sh:reveal": { label: "P2SH Reveal", bg: "bg-[#8888a022]", text: "text-[#8888a0]" },
+  "p2sh:commit": { label: "P2SH Commit", bg: "bg-[#8888a022]", text: "text-[#5a7090]" },
+  "p2sh:reveal": { label: "P2SH Reveal", bg: "bg-[#8888a022]", text: "text-[#5a7090]" },
 };
 
 function getTxTypeStyle(txType: string): { label: string; bg: string; text: string } {
@@ -87,19 +82,10 @@ function getUniqueProtocols(transactions: TxSummary[]): string[] {
   return PROTOCOL_ORDER.filter((p) => protocols.has(p));
 }
 
-const PROTOCOL_CHIP_STYLES: Record<string, { label: string; bg: string; text: string }> = {
-  kas: { label: "KAS", bg: "bg-[#3366aa22]", text: "text-[#6699dd]" },
-  krc20: { label: "KRC20", bg: "bg-[#ff9f1a22]", text: "text-[#ff9f1a]" },
-  kns: { label: "KNS", bg: "bg-[#2ff2a822]", text: "text-[#2ff2a8]" },
-  krc721: { label: "KRC721", bg: "bg-[#e6557022]", text: "text-[#e65570]" },
-  kasia: { label: "Kasia", bg: "bg-[#55bbff22]", text: "text-[#55bbff]" },
-  p2sh: { label: "P2SH", bg: "bg-[#8888a022]", text: "text-[#8888a0]" },
-};
-
 export default function TxList({ transactions, center, prices, typeFilter, onTypeFilterChange }: TxListProps) {
   if (transactions.length === 0) {
     return (
-      <div className="p-4 text-xs text-[var(--color-text-muted)]">
+      <div className="p-4 text-xs text-[var(--color-text-dim)] mono tracking-wide text-center py-8">
         No transactions loaded
       </div>
     );
@@ -115,10 +101,10 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-[var(--color-border)] space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-[var(--color-accent)] uppercase tracking-wider">
+          <h3 className="section-label">
             Transactions
           </h3>
-          <span className="text-[10px] text-[var(--color-text-muted)]">
+          <span className="text-[10px] text-[var(--color-text-dim)] mono">
             {filtered.length}{typeFilter !== "all" ? `/${transactions.length}` : ""} loaded
           </span>
         </div>
@@ -127,10 +113,10 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
           <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => onTypeFilterChange("all")}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-colors ${
+              className={`toolbar-btn ${
                 typeFilter === "all"
-                  ? "bg-[var(--color-accent)] text-[var(--color-bg)]"
-                  : "bg-[var(--color-bg)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                  ? "toolbar-btn-active"
+                  : "toolbar-btn-inactive"
               }`}
             >
               All
@@ -141,10 +127,10 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
                 <button
                   key={protocol}
                   onClick={() => onTypeFilterChange(protocol)}
-                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer transition-colors ${
+                  className={`toolbar-btn ${
                     typeFilter === protocol
-                      ? "bg-[var(--color-accent)] text-[var(--color-bg)]"
-                      : `${style.bg} ${style.text} hover:opacity-80`
+                      ? "toolbar-btn-active"
+                      : `${style.bg} ${style.text} hover:opacity-80 border border-transparent`
                   }`}
                 >
                   {style.label}
@@ -160,11 +146,13 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
           const isOutgoing = tx.inputs.includes(center) && !tx.outputs.includes(center);
           const isSelf = tx.inputs.includes(center) && tx.outputs.includes(center);
 
-          const dirColor = isIncoming
-            ? "text-[#2ff2a8]"
+          const dirClass = isIncoming
+            ? "dir-in"
             : isOutgoing
-            ? "text-[#ff4466]"
-            : "text-[#556688]";
+            ? "dir-out"
+            : isSelf
+            ? "dir-self"
+            : "text-[#5a7090]";
           const dirLabel = isIncoming ? "IN" : isOutgoing ? "OUT" : isSelf ? "SELF" : "---";
 
           const totalAmount = tx.amounts.reduce((a, b) => a + b, 0);
@@ -181,15 +169,15 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
           return (
             <div
               key={tx.tx_id}
-              className="px-4 py-3 border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors"
+              className="tx-row px-4 py-3"
             >
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-bold ${dirColor}`}>
+                  <span className={`text-[10px] font-bold tracking-wider ${dirClass}`}>
                     {dirLabel}
                   </span>
                   {tx.tx_type !== "kas" && (
-                    <span className={`text-[9px] px-1 py-0.5 rounded font-bold ${typeStyle.bg} ${typeStyle.text}`}>
+                    <span className={`protocol-badge ${typeStyle.bg} ${typeStyle.text} border border-transparent`}>
                       {typeStyle.label}
                     </span>
                   )}
@@ -197,12 +185,12 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
                     href={`${EXPLORER_BASE_URL}/transaction/${tx.tx_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[10px] font-mono text-[var(--color-node)] hover:text-[var(--color-accent)] transition-colors"
+                    className="text-[10px] mono text-[var(--color-node)] hover:text-[var(--color-accent)] transition-colors"
                   >
                     {tx.tx_id.slice(0, 12)}...
                   </a>
                 </div>
-                <span className="text-[10px] text-[var(--color-text-muted)]">
+                <span className="text-[10px] text-[var(--color-text-dim)] mono">
                   {formatTime(tx.block_time)}
                 </span>
               </div>
@@ -211,25 +199,25 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
                 <div className="text-[10px] text-[var(--color-text-muted)] space-y-0.5">
                   {counterparties.length > 0 ? (
                     counterparties.slice(0, 3).map((addr) => (
-                      <span key={addr} className="block font-mono">
+                      <span key={addr} className="block mono">
                         {truncate(addr)}
                       </span>
                     ))
                   ) : (
-                    <span className="font-mono">{truncate(center)}</span>
+                    <span className="mono">{truncate(center)}</span>
                   )}
                   {counterparties.length > 3 && (
-                    <span className="text-[var(--color-text-muted)]">
+                    <span className="text-[var(--color-text-dim)]">
                       +{counterparties.length - 3} more
                     </span>
                   )}
                 </div>
                 <div className="text-right ml-2">
-                  <span className="text-xs font-bold whitespace-nowrap block">
+                  <span className="text-xs font-semibold whitespace-nowrap block">
                     {sompiToKas(totalAmount)} KAS
                   </span>
                   {usdValue !== null && (
-                    <span className="text-[9px] text-[var(--color-text-muted)] whitespace-nowrap">
+                    <span className="text-[9px] text-[var(--color-text-dim)] whitespace-nowrap mono">
                       {formatUsd(usdValue)}
                     </span>
                   )}
