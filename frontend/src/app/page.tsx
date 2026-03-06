@@ -487,7 +487,6 @@ export default function Home() {
                 </div>
                 <p className="empty-state-title mb-6">
                   Ready to investigate
-                  <span className="empty-state-cursor" />
                 </p>
                 <div className="mb-6 max-w-xl mx-auto">
                   <AddressSearch onSearch={handleSearch} loading={loading} />
@@ -511,6 +510,14 @@ export default function Home() {
                     Patterns
                   </span>
                 </div>
+                <a
+                  href="https://kasanova.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-8 inline-block text-[10px] text-[var(--color-text-dim)] hover:text-[var(--color-accent)] transition-colors mono tracking-wide"
+                >
+                  Made with &lt;3 by Kasanova
+                </a>
               </div>
             </div>
           ) : null}
