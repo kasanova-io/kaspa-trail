@@ -901,3 +901,147 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--color-accent);
   font-weight: 600;
 }
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — Mobile-first breakpoints
+   ═══════════════════════════════════════════════════════ */
+
+/* Mobile: allow page scroll instead of fixed viewport */
+@media (max-width: 768px) {
+  body {
+    overflow: auto;
+  }
+
+  /* Header — compact on mobile */
+  .forensics-header {
+    padding: 12px 16px;
+  }
+
+  .forensics-title {
+    font-size: 0.7rem;
+  }
+
+  .context-badge {
+    font-size: 7px;
+    padding: 1px 6px;
+  }
+
+  /* Empty state — smaller text */
+  .empty-state-title {
+    font-size: 1.2rem;
+    letter-spacing: 0.08em;
+  }
+
+  .empty-state-cursor {
+    height: 1.2rem;
+  }
+
+  /* Search bar — tighter on mobile */
+  .search-input {
+    font-size: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .search-button {
+    font-size: 11px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* Toolbar — horizontal scroll */
+  .toolbar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .toolbar-btn {
+    font-size: 9px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+  }
+
+  .field-input {
+    font-size: 9px;
+  }
+
+  /* Sidebar — bottom panel mode */
+  .sidebar {
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .sidebar::before {
+    display: none;
+  }
+
+  /* Tab buttons — smaller */
+  .tab-btn {
+    font-size: 9px;
+    padding: 8px 8px;
+    letter-spacing: 0.08em;
+  }
+
+  /* Info cards — tighter */
+  .info-card {
+    padding: 6px 6px 6px 10px;
+  }
+
+  /* Protocol badges */
+  .protocol-badge {
+    font-size: 7px;
+  }
+
+  /* Graph container HUD corners — smaller on mobile */
+  .graph-container::after {
+    background:
+      linear-gradient(90deg, var(--color-border-bright) 10px, transparent 10px) no-repeat 4px 4px / 100% 1px,
+      linear-gradient(180deg, var(--color-border-bright) 10px, transparent 10px) no-repeat 4px 4px / 1px 100%,
+      linear-gradient(270deg, var(--color-border-bright) 10px, transparent 10px) no-repeat calc(100% - 4px) 4px / 100% 1px,
+      linear-gradient(180deg, var(--color-border-bright) 10px, transparent 10px) no-repeat calc(100% - 4px) 4px / 1px 100%,
+      linear-gradient(90deg, var(--color-border-bright) 10px, transparent 10px) no-repeat 4px calc(100% - 4px) / 100% 1px,
+      linear-gradient(0deg, var(--color-border-bright) 10px, transparent 10px) no-repeat 4px calc(100% - 4px) / 1px 100%,
+      linear-gradient(270deg, var(--color-border-bright) 10px, transparent 10px) no-repeat calc(100% - 4px) calc(100% - 4px) / 100% 1px,
+      linear-gradient(0deg, var(--color-border-bright) 10px, transparent 10px) no-repeat calc(100% - 4px) calc(100% - 4px) / 1px 100%;
+  }
+
+  /* Minimap — hide on mobile */
+  .minimap {
+    display: none;
+  }
+
+  /* Legend — smaller */
+  .graph-legend {
+    font-size: 8px;
+    padding: 4px 8px;
+  }
+
+  /* Tx rows — tighter */
+  .tx-row {
+    padding: 8px 12px;
+  }
+
+  /* Addr hash — smaller */
+  .addr-hash {
+    font-size: 9px;
+  }
+}
+
+/* Tablet breakpoint for sidebar transition */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 260px;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+}

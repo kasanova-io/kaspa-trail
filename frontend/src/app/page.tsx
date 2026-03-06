@@ -370,10 +370,10 @@ export default function Home() {
   })();
 
   return (
-    <div className="h-screen flex flex-col relative z-10">
+    <div className="h-screen flex flex-col relative z-10 md:overflow-hidden overflow-auto">
       {/* Header */}
       <header className="forensics-header px-6 py-4">
-        <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-2 md:gap-4 mb-2 md:mb-3 flex-wrap">
           <div className="flex items-center gap-3">
             {/* Logo mark */}
             <div className="relative w-7 h-7 flex items-center justify-center">
@@ -394,19 +394,19 @@ export default function Home() {
           </div>
           <span className="context-badge">DAG Analysis</span>
           {graph && (
-            <span className="mono text-[10px] text-[var(--color-text-muted)] flex items-center gap-2">
+            <span className="mono text-[10px] text-[var(--color-text-muted)] hidden sm:flex items-center gap-2">
               <span className="status-dot status-dot-active" />
               {graph.nodes.length} addresses &middot; {graph.edges.length} flows
               {graph.tx_total > 0 && ` \u00b7 ${graph.tx_total} txs`}
             </span>
           )}
           {toolMode === "path" && pathSource && (
-            <span className="text-[10px] text-[var(--color-warning)] font-semibold tracking-wide uppercase">
+            <span className="hidden sm:inline text-[10px] text-[var(--color-warning)] font-semibold tracking-wide uppercase">
               Select destination node (from {pathSource.split(":")[1]?.slice(0, 6)}...)
             </span>
           )}
           {toolMode === "taint" && (
-            <span className="text-[10px] text-[var(--color-warning)] font-semibold tracking-wide uppercase">
+            <span className="hidden sm:inline text-[10px] text-[var(--color-warning)] font-semibold tracking-wide uppercase">
               Click node to trace taint
             </span>
           )}
@@ -448,9 +448,9 @@ export default function Home() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden">
         {/* Graph area */}
-        <div className="flex-1 p-2 relative">
+        <div className="flex-1 shrink-0 p-1 md:p-2 relative min-h-[50vh] md:min-h-0">
           {graph ? (
             <GraphView
               ref={graphRef}
@@ -517,7 +517,7 @@ export default function Home() {
 
         {/* Right sidebar */}
         {graph && (
-          <aside className="w-80 sidebar flex flex-col overflow-hidden">
+          <aside className="w-full md:w-80 sidebar flex flex-col md:overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-[var(--color-border)]">
               {(["inspect", "txs", "cases"] as const).map((tab) => (
