@@ -30,35 +30,44 @@ export default function AddressSearch({ onSearch, loading }: AddressSearchProps)
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            setError("");
-          }}
-          placeholder="kaspa:qz0m... or name.kas"
-          className="flex-1 px-4 py-3 rounded-lg text-sm
-            bg-[var(--color-surface)] border border-[var(--color-border)]
-            text-[var(--color-text)] placeholder-[var(--color-text-muted)]
-            focus:outline-none focus:border-[var(--color-accent)]
-            transition-colors"
-          disabled={loading}
-        />
+      <div className="search-container flex gap-2">
+        <div className="flex-1 relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)] text-[10px] tracking-widest uppercase select-none pointer-events-none">
+            &gt;
+          </span>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setError("");
+            }}
+            placeholder="Enter a kaspa address or .kas domain to start"
+            className="w-full pl-8 pr-4 py-3 rounded-lg search-input"
+            disabled={loading}
+          />
+        </div>
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-3 rounded-lg text-sm font-bold
-            bg-[var(--color-accent)] text-[var(--color-bg)]
-            hover:opacity-90 disabled:opacity-50 transition-opacity
-            cursor-pointer disabled:cursor-wait"
+          className="px-6 py-3 rounded-lg search-button
+            disabled:opacity-50 disabled:cursor-wait cursor-pointer"
         >
-          {loading ? "..." : "Trace"}
+          {loading ? (
+            <span className="inline-flex items-center gap-1.5">
+              <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Tracing
+            </span>
+          ) : (
+            "Trace"
+          )}
         </button>
       </div>
       {error && (
-        <p className="mt-2 text-sm text-[var(--color-edge-send)]">{error}</p>
+        <p className="mt-2 text-xs text-[var(--color-edge-send)] mono tracking-wide">{error}</p>
       )}
     </form>
   );

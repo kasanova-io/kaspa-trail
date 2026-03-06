@@ -29,5 +29,12 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Playwright MCP
+.playwright-mcp/
+
+# Screenshots
+*.png
+*.jpeg
+
 # Claude
 .claude/

@@ -370,33 +370,50 @@ export default function Home() {
   })();
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col relative z-10">
       {/* Header */}
-      <header className="px-6 py-4 border-b border-[var(--color-border)]">
+      <header className="forensics-header px-6 py-4">
         <div className="flex items-center gap-4 mb-3">
-          <h1 className="text-lg font-bold text-[var(--color-accent)]">
-            Kaspa Forensics
-          </h1>
+          <div className="flex items-center gap-3">
+            {/* Logo mark */}
+            <div className="relative w-7 h-7 flex items-center justify-center">
+              <svg viewBox="0 0 28 28" width="28" height="28" fill="none">
+                <path d="M14 2L26 8v12l-12 6L2 20V8l12-6z" stroke="#2ff2a8" strokeWidth="1.5" fill="#2ff2a808" />
+                <circle cx="14" cy="14" r="3" fill="#2ff2a8" opacity="0.6" />
+                <line x1="14" y1="14" x2="22" y2="8" stroke="#2ff2a8" strokeWidth="0.8" opacity="0.4" />
+                <line x1="14" y1="14" x2="6" y2="8" stroke="#2ff2a8" strokeWidth="0.8" opacity="0.4" />
+                <line x1="14" y1="14" x2="14" y2="24" stroke="#2ff2a8" strokeWidth="0.8" opacity="0.4" />
+                <circle cx="22" cy="8" r="1.5" fill="#2ff2a8" opacity="0.3" />
+                <circle cx="6" cy="8" r="1.5" fill="#2ff2a8" opacity="0.3" />
+                <circle cx="14" cy="24" r="1.5" fill="#2ff2a8" opacity="0.3" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="forensics-title">Kaspa Forensics</h1>
+            </div>
+          </div>
+          <span className="context-badge">DAG Analysis</span>
           {graph && (
-            <span className="text-xs text-[var(--color-text-muted)]">
-              {graph.nodes.length} addresses / {graph.edges.length} flows
-              {graph.tx_total > 0 && ` / ${graph.tx_total} total txs`}
+            <span className="mono text-[10px] text-[var(--color-text-muted)] flex items-center gap-2">
+              <span className="status-dot status-dot-active" />
+              {graph.nodes.length} addresses &middot; {graph.edges.length} flows
+              {graph.tx_total > 0 && ` \u00b7 ${graph.tx_total} txs`}
             </span>
           )}
           {toolMode === "path" && pathSource && (
-            <span className="text-xs text-[#ff9f1a] font-bold">
-              Click second node for path (from {pathSource.split(":")[1]?.slice(0, 6)}...)
+            <span className="text-[10px] text-[var(--color-warning)] font-semibold tracking-wide uppercase">
+              Select destination node (from {pathSource.split(":")[1]?.slice(0, 6)}...)
             </span>
           )}
           {toolMode === "taint" && (
-            <span className="text-xs text-[#ff9f1a] font-bold">
-              Click a node to trace taint
+            <span className="text-[10px] text-[var(--color-warning)] font-semibold tracking-wide uppercase">
+              Click node to trace taint
             </span>
           )}
         </div>
-        <AddressSearch onSearch={handleSearch} loading={loading} />
+        {(graph || loading) && <AddressSearch onSearch={handleSearch} loading={loading} />}
         {error && (
-          <p className="mt-2 text-sm text-[var(--color-edge-send)] text-center">
+          <p className="mt-2 text-xs text-[var(--color-edge-send)] text-center mono tracking-wide">
             {error}
           </p>
         )}
@@ -446,22 +463,53 @@ export default function Home() {
             />
           ) : !loading ? (
             <div className="h-full flex items-center justify-center">
-              <div className="text-center text-[var(--color-text-muted)]">
-                <p className="text-2xl mb-2">Paste an address to begin</p>
-                <p className="text-sm">
-                  Enter a Kaspa address to visualize its transaction graph
+              <div className="empty-state text-center max-w-lg">
+                {/* Decorative hex grid */}
+                <div className="mb-8 flex justify-center opacity-20">
+                  <svg viewBox="0 0 200 60" width="200" height="60" fill="none">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <g key={i} transform={`translate(${i * 40 + (i % 2 ? 0 : 20)}, ${i % 2 ? 0 : 16})`}>
+                        <path d="M20 0L38 10v20L20 40 2 30V10L20 0z" stroke="#2ff2a8" strokeWidth="0.5" />
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+                <p className="empty-state-title mb-6">
+                  Ready to investigate
+                  <span className="empty-state-cursor" />
                 </p>
+                <div className="mb-6 max-w-xl mx-auto">
+                  <AddressSearch onSearch={handleSearch} loading={loading} />
+                  {error && (
+                    <p className="mt-3 text-xs text-[var(--color-edge-send)] text-center mono tracking-wide">
+                      {error}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-6 flex justify-center gap-6 text-[10px] text-[var(--color-text-dim)]">
+                  <span className="flex items-center gap-1.5 uppercase tracking-widest">
+                    <span className="w-2 h-2 rounded-full bg-[#2ff2a8] opacity-40" />
+                    Graph
+                  </span>
+                  <span className="flex items-center gap-1.5 uppercase tracking-widest">
+                    <span className="w-2 h-2 rounded-full bg-[#ff9f1a] opacity-40" />
+                    Entities
+                  </span>
+                  <span className="flex items-center gap-1.5 uppercase tracking-widest">
+                    <span className="w-2 h-2 rounded-full bg-[#ff3a5c] opacity-40" />
+                    Patterns
+                  </span>
+                </div>
               </div>
             </div>
           ) : null}
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#08080dcc] z-10 rounded-lg">
-              <div className="flex flex-col items-center gap-4">
-                <svg className="animate-spin" width="40" height="40" viewBox="0 0 40 40" fill="none">
-                  <circle cx="20" cy="20" r="16" stroke="var(--color-border)" strokeWidth="3" />
-                  <path d="M36 20a16 16 0 0 0-16-16" stroke="var(--color-accent)" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                <span className="text-sm text-[var(--color-text-muted)]">Tracing transactions...</span>
+            <div className="absolute inset-0 flex items-center justify-center loading-overlay z-10 rounded-lg">
+              <div className="loading-spinner flex flex-col items-center gap-4">
+                <div className="hex-spinner"></div>
+                <span className="text-xs text-[var(--color-text-muted)] tracking-widest uppercase">
+                  Tracing transactions
+                </span>
               </div>
             </div>
           )}
@@ -469,17 +517,15 @@ export default function Home() {
 
         {/* Right sidebar */}
         {graph && (
-          <aside className="w-80 border-l border-[var(--color-border)] bg-[var(--color-surface)] flex flex-col overflow-hidden">
+          <aside className="w-80 sidebar flex flex-col overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b border-[var(--color-border)]">
               {(["inspect", "txs", "cases"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setRightTab(tab)}
-                  className={`flex-1 px-3 py-2.5 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                    rightTab === tab
-                      ? "text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                  className={`flex-1 px-3 py-2.5 tab-btn ${
+                    rightTab === tab ? "tab-btn-active" : "tab-btn-inactive"
                   }`}
                 >
                   {tab === "txs" ? `Txs (${graph.transactions.length})` : tab === "cases" ? "Cases" : "Inspect"}
@@ -509,46 +555,46 @@ export default function Home() {
               {rightTab === "cases" && (
                 <div className="p-4 space-y-3 text-xs">
                   <div className="space-y-1">
-                    <p className="text-[var(--color-text-muted)] font-bold uppercase tracking-wider">Save Investigation</p>
-                    <div className="flex gap-1">
+                    <p className="section-label">Save Investigation</p>
+                    <div className="flex gap-1 mt-2">
                       <input
                         type="text"
                         value={caseName}
                         onChange={(e) => setCaseName(e.target.value)}
                         placeholder="Case name..."
-                        className="flex-1 px-2 py-1 rounded bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] text-[10px] focus:outline-none focus:border-[var(--color-accent)]"
+                        className="flex-1 px-2 py-1.5 rounded field-input"
                         onKeyDown={(e) => { if (e.key === "Enter") handleSaveCase(); }}
                       />
                       <button
                         onClick={handleSaveCase}
-                        className="px-2 py-1 rounded bg-[var(--color-accent-dim)] text-[var(--color-accent)] text-[10px] font-bold cursor-pointer hover:bg-[var(--color-accent)] hover:text-[var(--color-bg)]"
+                        className="px-3 py-1.5 rounded text-[10px] btn-primary"
                       >
                         Save
                       </button>
                     </div>
                   </div>
                   {cases.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-[var(--color-text-muted)] font-bold uppercase tracking-wider">Saved Cases ({cases.length})</p>
+                    <div className="space-y-2">
+                      <p className="section-label">Saved Cases ({cases.length})</p>
                       <div className="space-y-1">
                         {cases.map((c) => (
-                          <div key={c.id} className="flex items-center justify-between p-2 rounded bg-[var(--color-bg)]">
+                          <div key={c.id} className="flex items-center justify-between p-2.5 rounded info-card">
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold truncate">{c.name}</p>
-                              <p className="text-[9px] text-[var(--color-text-muted)]">
-                                {c.graph.nodes.length} nodes / {new Date(c.updated).toLocaleDateString()}
+                              <p className="font-semibold truncate text-[var(--color-text)]">{c.name}</p>
+                              <p className="text-[9px] text-[var(--color-text-muted)] mono mt-0.5">
+                                {c.graph.nodes.length} nodes &middot; {new Date(c.updated).toLocaleDateString()}
                               </p>
                             </div>
                             <div className="flex gap-1 ml-2">
                               <button
                                 onClick={() => handleLoadCase(c)}
-                                className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[var(--color-accent-dim)] text-[var(--color-accent)] cursor-pointer hover:bg-[var(--color-accent)] hover:text-[var(--color-bg)]"
+                                className="px-2 py-1 rounded text-[9px] btn-primary"
                               >
                                 Load
                               </button>
                               <button
                                 onClick={() => handleDeleteCase(c.id)}
-                                className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#ff446622] text-[#ff4466] cursor-pointer hover:bg-[#ff4466] hover:text-[var(--color-bg)]"
+                                className="px-2 py-1 rounded text-[9px] btn-danger"
                               >
                                 Del
                               </button>
@@ -559,7 +605,9 @@ export default function Home() {
                     </div>
                   )}
                   {cases.length === 0 && (
-                    <p className="text-[var(--color-text-muted)] text-center py-4">No saved cases yet</p>
+                    <p className="text-[var(--color-text-dim)] text-center py-6 mono text-[10px] tracking-wide">
+                      No saved cases
+                    </p>
                   )}
                 </div>
               )}
