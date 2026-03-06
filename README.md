@@ -2,6 +2,8 @@
 
 Interactive address graph explorer for the Kaspa blockchain. Paste an address (or `.kas` domain), and visualize all addresses it has interacted with — fund flows, transaction details, entity identification, and on-chain holdings.
 
+## [LIVE DEMO](https://forensics.kasanova.app)
+
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
