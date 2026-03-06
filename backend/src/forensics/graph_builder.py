@@ -87,7 +87,7 @@ def _detect_protocol_from_script(tx: dict) -> str | None:
     Looks for OP_FALSE OP_IF (0x00 0x63) followed by a known protocol marker
     in the redeem script of P2SH inputs. This is how inscription reveals work.
     """
-    for inp in tx.get("inputs", []):
+    for inp in tx.get("inputs") or []:
         prev_addr = inp.get("previous_outpoint_address", "")
         if not prev_addr.startswith(("kaspa:p", "kaspatest:p")):
             continue
@@ -225,7 +225,7 @@ def build_address_graph(
 
         output_addresses: list[str] = []
         output_amounts: list[int] = []
-        for out in tx.get("outputs", []):
+        for out in tx.get("outputs") or []:
             out_addr = out.get("script_public_key_address")
             out_amount = out.get("amount", 0)
             if not out_addr:
