@@ -14,9 +14,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
-    env_file:
-      - .env
-      - .env.prod
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:80/api/health']
       interval: 30s
