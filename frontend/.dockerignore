@@ -1,0 +1,10 @@
+# ABOUTME: Excludes unnecessary files from Docker build context
+# ABOUTME: Keeps images small and builds fast
+
+node_modules/
+.next/
+.env
+.env.*
+.git/
+.gitignore
+Dockerfile

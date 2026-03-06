@@ -1,0 +1,45 @@
+# ABOUTME: Base Docker Compose configuration for forensics services
+# ABOUTME: Automatically loads docker-compose.override.yml for local development
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod
+    environment:
+      PYTHONPATH: /app
+      PYTHONUNBUFFERED: 1
+    env_file:
+      - .env
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:80/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        BACKEND_URL: http://backend:80
+    environment:
+      BACKEND_URL: http://backend:80
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'

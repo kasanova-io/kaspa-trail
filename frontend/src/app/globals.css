@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-hover: #1a1a25;
+  --color-border: #2a2a3a;
+  --color-text: #e0e0e8;
+  --color-text-muted: #8888a0;
+  --color-accent: #2ff2a8;
+  --color-accent-dim: #1a8a60;
+  --color-edge-send: #ff4466;
+  --color-edge-receive: #2ff2a8;
+  --color-node: #4488ff;
+  --color-node-center: #2ff2a8;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+}
+
+/* Cytoscape container */
+#cy {
+  width: 100%;
+  height: 100%;
+}

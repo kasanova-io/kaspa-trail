@@ -1,0 +1,20 @@
+# ABOUTME: Excludes unnecessary files from Docker build context
+# ABOUTME: Keeps images small and builds fast
+
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.egg-info/
+dist/
+build/
+.venv/
+.env
+.env.*
+.git/
+.gitignore
+Dockerfile

@@ -1,0 +1,79 @@
+# ABOUTME: Docker Compose configuration for production environment
+# ABOUTME: Deployed behind reverse proxy, no ports exposed directly
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: prod
+    image: ghcr.io/kasanova-io/forensics-backend:${IMAGE_TAG:-prod}
+    container_name: ${BACKEND_CONTAINER:-forensics_backend_prod}
+    expose:
+      - '80'
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
+      - .env.prod
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:80/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - caddy_caddy_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        BACKEND_URL: http://backend:80
+    image: ghcr.io/kasanova-io/forensics-frontend:${IMAGE_TAG:-prod}
+    container_name: ${FRONTEND_CONTAINER:-forensics_frontend_prod}
+    expose:
+      - '3001'
+    environment:
+      - BACKEND_URL=http://backend:80
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - caddy_caddy_net
+
+networks:
+  caddy_caddy_net:
+    external: true
