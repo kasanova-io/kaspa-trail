@@ -686,14 +686,6 @@ body::after {
   box-shadow: 0 0 8px var(--color-accent-glow);
 }
 
-.empty-state-sub {
-  font-family: "Victor Mono", "JetBrains Mono", monospace;
-  font-size: 12px;
-  color: var(--color-text-dim);
-  letter-spacing: 0.04em;
-  font-style: italic;
-}
-
 /* Loading overlay */
 .loading-overlay {
   background: #060810e6;
@@ -907,7 +899,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
    ═══════════════════════════════════════════════════════ */
 
 /* Mobile: allow page scroll instead of fixed viewport */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   body {
     overflow: auto;
   }
@@ -961,6 +953,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
   .toolbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Right-edge fade to hint at scrollable content */
+  .toolbar {
+    mask-image: linear-gradient(to right, #000 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 90%, transparent 100%);
   }
 
   .toolbar-btn {
@@ -1035,12 +1033,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
   }
 }
 
-/* Tablet breakpoint for sidebar transition */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .sidebar {
-    width: 260px;
-  }
-
+/* Tablet breakpoint */
+@media (min-width: 768px) and (max-width: 1024px) {
   .toolbar {
     flex-wrap: wrap;
   }

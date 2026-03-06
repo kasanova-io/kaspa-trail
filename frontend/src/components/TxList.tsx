@@ -4,6 +4,7 @@
 "use client";
 
 import { sompiToKas, EXPLORER_BASE_URL, type TxSummary, type PricePoint, interpolatePrice, sompiToKasNum } from "@/lib/api";
+import { formatUsd, PROTOCOL_CHIP_STYLES } from "@/lib/format";
 
 interface TxListProps {
   transactions: TxSummary[];
@@ -28,12 +29,6 @@ function formatTime(ms: number): string {
     minute: "2-digit",
     second: "2-digit",
   });
-}
-
-function formatUsd(amount: number): string {
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(2)}M`;
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(2)}K`;
-  return `$${amount.toFixed(2)}`;
 }
 
 const TX_TYPE_STYLES: Record<string, { label: string; bg: string; text: string }> = {
@@ -86,15 +81,6 @@ function getUniqueProtocols(transactions: TxSummary[]): string[] {
   }
   return PROTOCOL_ORDER.filter((p) => protocols.has(p));
 }
-
-const PROTOCOL_CHIP_STYLES: Record<string, { label: string; bg: string; text: string }> = {
-  kas: { label: "KAS", bg: "bg-[#3366aa22]", text: "text-[#6699dd]" },
-  krc20: { label: "KRC20", bg: "bg-[#ff9f1a22]", text: "text-[#ff9f1a]" },
-  kns: { label: "KNS", bg: "bg-[#2ff2a822]", text: "text-[#2ff2a8]" },
-  krc721: { label: "KRC721", bg: "bg-[#e6557022]", text: "text-[#e65570]" },
-  kasia: { label: "Kasia", bg: "bg-[#55bbff22]", text: "text-[#55bbff]" },
-  p2sh: { label: "P2SH", bg: "bg-[#8888a022]", text: "text-[#5a7090]" },
-};
 
 export default function TxList({ transactions, center, prices, typeFilter, onTypeFilterChange }: TxListProps) {
   if (transactions.length === 0) {

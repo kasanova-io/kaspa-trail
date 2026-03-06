@@ -15,6 +15,7 @@ import {
   type AddressDetails,
   type PricePoint,
 } from "@/lib/api";
+import { formatUsd } from "@/lib/format";
 import { getLabel, setLabel } from "@/lib/caseStore";
 
 interface InfoPanelProps {
@@ -49,12 +50,6 @@ function formatTokenBalance(balance: string, decimals: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
   if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
   return num.toFixed(Math.min(2, decimals));
-}
-
-function formatUsd(amount: number): string {
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(2)}M`;
-  if (amount >= 1_000) return `$${(amount / 1_000).toFixed(2)}K`;
-  return `$${amount.toFixed(2)}`;
 }
 
 const PATTERN_LABELS: Record<string, { label: string; color: string }> = {
