@@ -218,7 +218,7 @@ def build_address_graph(
         tx_id = tx["transaction_id"]
         block_time = tx.get("block_time", 0)
         input_addresses = set()
-        for inp in tx.get("inputs", []):
+        for inp in tx.get("inputs") or []:
             addr = inp.get("previous_outpoint_address")
             if addr:
                 input_addresses.add(addr)
