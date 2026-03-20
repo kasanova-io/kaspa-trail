@@ -35,6 +35,10 @@ interface GraphControlsProps {
   protocolFilter: string;
   onProtocolFilterChange: (filter: string) => void;
   availableProtocols: string[];
+  // Token sub-filter (KRC20 tickers)
+  tokenFilter: string;
+  onTokenFilterChange: (filter: string) => void;
+  availableTokens: string[];
 }
 
 export default function GraphControls({
@@ -60,6 +64,9 @@ export default function GraphControls({
   protocolFilter,
   onProtocolFilterChange,
   availableProtocols,
+  tokenFilter,
+  onTokenFilterChange,
+  availableTokens,
 }: GraphControlsProps) {
   const [showExport, setShowExport] = useState(false);
 
@@ -129,6 +136,22 @@ export default function GraphControls({
               </button>
             );
           })}
+          {/* Token sub-filter when KRC20 is selected */}
+          {protocolFilter === "krc20" && availableTokens.length > 0 && (
+            <>
+              <span className="text-[var(--color-text-dim)] px-1">/</span>
+              <select
+                value={tokenFilter}
+                onChange={(e) => onTokenFilterChange(e.target.value)}
+                className="toolbar-btn field-input px-2 py-1 text-[10px] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] rounded cursor-pointer"
+              >
+                <option value="all">All tokens</option>
+                {availableTokens.map((tick) => (
+                  <option key={tick} value={tick}>{tick}</option>
+                ))}
+              </select>
+            </>
+          )}
         </>
       )}
 

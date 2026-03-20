@@ -142,12 +142,63 @@ async def get_address_graph(
 
     krc20_ops = await krc20_ops_future
 
+    # Build P2SH address → full op mapping from reveal transactions.
+    # Reveals spend FROM P2SH addresses; commits send TO them.
+    # Maps P2SH address → full op value (e.g. "krc20:mint:KSNV") so commits
+    # can be attributed to specific tokens and operations.
+    p2sh_op: dict[str, str] = {}
+
+    def _extract_p2sh_mappings(tx: dict) -> None:
+        """Extract P2SH address → op mappings from a reveal transaction."""
+        tx_id = tx.get("transaction_id", "").lower()
+        op_value = krc20_ops.get(tx_id)
+        if not op_value:
+            return
+        for inp in tx.get("inputs") or []:
+            addr = inp.get("previous_outpoint_address", "")
+            if addr.startswith(("kaspa:p", "kaspatest:p")):
+                p2sh_op[addr] = op_value
+
+    # Extract mapping from reveals already in the loaded set
+    for tx in all_transactions:
+        _extract_p2sh_mappings(tx)
+
+    # Collect P2SH output addresses from loaded commits that still need attribution
+    unmatched_p2sh: set[str] = set()
+    for tx in all_transactions:
+        for out in tx.get("outputs") or []:
+            addr = out.get("script_public_key_address", "")
+            if addr.startswith(("kaspa:p", "kaspatest:p")) and addr not in p2sh_op:
+                unmatched_p2sh.add(addr)
+
+    # Fetch missing reveals incrementally, stopping once all P2SH outputs are matched.
+    if unmatched_p2sh:
+        loaded_tx_ids = {tx["transaction_id"].lower() for tx in all_transactions if "transaction_id" in tx}
+        missing_reveals = [tid for tid in krc20_ops if tid not in loaded_tx_ids]
+        if missing_reveals:
+            batch_size = 100
+            for i in range(0, len(missing_reveals), batch_size):
+                batch = missing_reveals[i : i + batch_size]
+                reveal_txs = await client.get_transactions_by_hash(batch)
+                for tx in reveal_txs:
+                    _extract_p2sh_mappings(tx)
+                    tx_id = tx.get("transaction_id", "").lower()
+                    op_value = krc20_ops.get(tx_id)
+                    if op_value:
+                        for inp in tx.get("inputs") or []:
+                            addr = inp.get("previous_outpoint_address", "")
+                            if addr in unmatched_p2sh:
+                                unmatched_p2sh.discard(addr)
+                if not unmatched_p2sh:
+                    break
+
     graph = build_address_graph(
         address,
         all_transactions,
         tx_total=tx_total,
         names=address_names,
         krc20_ops=krc20_ops,
+        p2sh_op=p2sh_op,
     )
 
     # Enrich nodes with KNS primary names (for addresses that don't already have a name)

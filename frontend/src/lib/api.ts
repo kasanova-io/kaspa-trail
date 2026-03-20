@@ -41,6 +41,7 @@ export interface AddressGraph {
   transactions: TxSummary[];
   tx_total: number;
   tx_loaded: number;
+  krc20_tokens: string[];
 }
 
 export interface AddressInfo {

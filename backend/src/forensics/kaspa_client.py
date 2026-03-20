@@ -25,7 +25,7 @@ class KaspaClient:
     def __init__(self, base_url: str = KASPA_API_BASE):
         self._base_url = base_url
         self._client = httpx.AsyncClient(base_url=base_url, timeout=REQUEST_TIMEOUT)
-        self._tx_cache = TTLCache(default_ttl=TX_CACHE_TTL, max_size=500)
+        self._tx_cache = TTLCache(default_ttl=TX_CACHE_TTL, max_size=5000)
 
     async def get_balance(self, address: str) -> dict:
         resp = await self._client.get(f"/addresses/{address}/balance")
@@ -60,6 +60,47 @@ class KaspaClient:
         if result:
             self._tx_cache.set(cache_key, result)
         return result
+
+    async def get_transactions_by_hash(self, tx_ids: list[str]) -> list[dict]:
+        """Fetch full transaction data for specific transaction hashes.
+
+        Uses the /transactions/search endpoint for batch retrieval.
+        Results are cached individually.
+        """
+        uncached: list[str] = []
+        results: dict[str, dict] = {}
+
+        for tx_id in tx_ids:
+            key = tx_id.lower()
+            cached = self._tx_cache.get(f"tx:{key}")
+            if cached is not None:
+                results[key] = cached
+            else:
+                uncached.append(tx_id)
+
+        if uncached:
+            # Kaspa API accepts POST /transactions/search with list of tx IDs.
+            # Batch in chunks of 100 to avoid 422 errors from the API.
+            batch_size = 100
+            for i in range(0, len(uncached), batch_size):
+                batch = uncached[i : i + batch_size]
+                try:
+                    resp = await self._client.post(
+                        "/transactions/search",
+                        json={"transactionIds": batch},
+                        params={"resolve_previous_outpoints": "light"},
+                    )
+                    resp.raise_for_status()
+                    for tx in resp.json():
+                        tid = tx.get("transaction_id", "")
+                        if tid:
+                            key = tid.lower()
+                            self._tx_cache.set(f"tx:{key}", tx)
+                            results[key] = tx
+                except Exception:
+                    logger.warning("Failed to fetch batch of %d transactions by hash", len(batch), exc_info=True)
+
+        return [results[tid.lower()] for tid in tx_ids if tid.lower() in results]
 
     async def get_address_names(self) -> dict[str, str]:
         """Fetch all known address names. Returns {address: name} mapping."""
@@ -151,7 +192,7 @@ class KasplexClient:
             if int(t.get("balance", "0")) > 0
         ]
 
-    async def get_operations(self, address: str, max_pages: int = 10) -> dict[str, str]:
+    async def get_operations(self, address: str, max_pages: int = 50) -> dict[str, str]:
         """Get KRC20 operations by address. Returns {reveal_tx_hash: "krc20:op:tick"} mapping.
 
         Uses cursor-based pagination to fetch all operations. The Kasplex oplist
@@ -163,12 +204,11 @@ class KasplexClient:
             return cached
 
         ops: dict[str, str] = {}
-        page_size = 500
         cursor: str | None = None
 
         try:
             for _ in range(max_pages):
-                params: dict[str, str | int] = {"address": address, "limit": page_size}
+                params: dict[str, str | int] = {"address": address, "limit": 50}
                 if cursor:
                     params["next"] = cursor
 
@@ -189,15 +229,17 @@ class KasplexClient:
                     if hash_rev and op:
                         ops[hash_rev] = f"krc20:{op}" + (f":{tick}" if tick else "")
 
-                # Stop if fewer results than page size (last page)
-                if len(results) < page_size:
-                    break
-
                 cursor = data.get("next")
-                if not cursor:
+                if not cursor or not results:
                     break
 
-            logger.debug("Loaded %d KRC20 ops for %s", len(ops), address[:20])
+            if cursor and results:
+                logger.warning(
+                    "Kasplex oplist truncated at %d ops for %s (max_pages=%d reached)",
+                    len(ops), address[:20], max_pages,
+                )
+            else:
+                logger.debug("Loaded %d KRC20 ops for %s", len(ops), address[:20])
         except Exception:
             logger.warning("Failed to fetch KRC20 ops for %s", address[:20], exc_info=True)
 

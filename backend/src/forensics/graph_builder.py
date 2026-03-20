@@ -183,19 +183,57 @@ def _classify_tx_type(
     return "p2sh:commit"
 
 
+def _enrich_tx_type(
+    tx_type: str,
+    output_addresses: list[str],
+    p2sh_op: dict[str, str],
+) -> str:
+    """Enrich a tx_type with the reveal's operation from the P2SH→op mapping.
+
+    For krc20 types missing a ticker (e.g. "krc20:mint") or unclassified
+    p2sh:commit types, replaces with the full op from the paired reveal
+    transaction (e.g. "krc20:mint:KSNV"). The oplist is ground truth.
+    """
+    parts = tx_type.split(":")
+
+    if (parts[0] == "krc20" and len(parts) == 2) or tx_type == "p2sh:commit":
+        for addr in output_addresses:
+            if addr in p2sh_op:
+                return p2sh_op[addr]
+
+    return tx_type
+
+
+def _is_reveal(tx_type: str) -> bool:
+    """Check if a tx_type represents a reveal transaction that should be hidden."""
+    return tx_type in ("krc20:unknown", "p2sh:reveal")
+
+
 def build_address_graph(
     center: str,
     transactions: list[dict[str, Any]],
     tx_total: int,
     names: dict[str, str] | None = None,
     krc20_ops: dict[str, str] | None = None,
+    p2sh_op: dict[str, str] | None = None,
 ) -> AddressGraph:
     """Build an address interaction graph from raw transaction data.
 
     For each accepted transaction, creates directed edges from every input address
     to every output address, weighted by the output amount.
+    Reveal transactions (from oplist and script detection) are excluded from
+    edges, nodes, and the transaction list.
     """
     krc20_ops = krc20_ops or {}
+    p2sh_op = p2sh_op or {}
+
+    # Pre-compute sets for filtering and enrichment
+    reveal_tx_ids = set(krc20_ops.keys())
+    krc20_tokens = sorted({
+        v.split(":")[2]
+        for v in krc20_ops.values()
+        if len(v.split(":")) >= 3
+    })
 
     edge_map: dict[tuple[str, str], dict] = defaultdict(
         lambda: {
@@ -216,6 +254,11 @@ def build_address_graph(
             continue
 
         tx_id = tx["transaction_id"]
+
+        # Skip oplist reveals — they're the second half of commit-reveal pairs
+        if tx_id.lower() in reveal_tx_ids:
+            continue
+
         block_time = tx.get("block_time", 0)
         input_addresses = set()
         for inp in tx.get("inputs") or []:
@@ -237,7 +280,14 @@ def build_address_graph(
             tx, tx_id, input_addresses, output_addresses, output_amounts, krc20_ops
         )
 
-        # Build edges with type info
+        # Skip script-detected reveals not in oplist
+        if _is_reveal(tx_type):
+            continue
+
+        # Enrich with ticker from P2SH→op mapping before building edges
+        tx_type = _enrich_tx_type(tx_type, output_addresses, p2sh_op)
+
+        # Build edges with enriched type
         for out_addr, out_amount in zip(output_addresses, output_amounts):
             for in_addr in input_addresses:
                 key = (in_addr, out_addr)
@@ -246,9 +296,7 @@ def build_address_graph(
                 if tx_id not in edge_map[key]["tx_ids"]:
                     edge_map[key]["tx_ids"].append(tx_id)
                     edge_map[key]["tx_count"] += 1
-                # Normalize tx_type base for edge aggregation (strip ticker)
-                base_type = ":".join(tx_type.split(":")[:2])
-                edge_map[key]["tx_types"][base_type] += 1
+                edge_map[key]["tx_types"][tx_type] += 1
 
         tx_summaries.append(
             TxSummary(
@@ -326,5 +374,6 @@ def build_address_graph(
         edges=edges,
         transactions=tx_summaries,
         tx_total=tx_total,
-        tx_loaded=len(tx_summaries),
+        tx_loaded=len(transactions),
+        krc20_tokens=krc20_tokens,
     )

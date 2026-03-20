@@ -52,6 +52,7 @@ class AddressGraph(BaseModel):
     transactions: list[TxSummary]
     tx_total: int  # total transactions for the center address
     tx_loaded: int = 0  # how many transactions were actually fetched
+    krc20_tokens: list[str] = Field(default_factory=list)  # unique KRC20 tickers from oplist
 
 
 class AddressInfo(BaseModel):
