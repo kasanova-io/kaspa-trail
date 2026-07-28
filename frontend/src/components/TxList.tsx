@@ -12,6 +12,9 @@ interface TxListProps {
   prices: PricePoint[];
   typeFilter: string;
   onTypeFilterChange: (filter: string) => void;
+  tokenFilter: string;
+  onTokenFilterChange: (filter: string) => void;
+  availableTokens: string[];
 }
 
 function truncate(addr: string): string {
@@ -82,7 +85,7 @@ function getUniqueProtocols(transactions: TxSummary[]): string[] {
   return PROTOCOL_ORDER.filter((p) => protocols.has(p));
 }
 
-export default function TxList({ transactions, center, prices, typeFilter, onTypeFilterChange }: TxListProps) {
+export default function TxList({ transactions, center, prices, typeFilter, onTypeFilterChange, tokenFilter, onTokenFilterChange, availableTokens }: TxListProps) {
   if (transactions.length === 0) {
     return (
       <div className="p-4 text-xs text-[var(--color-text-dim)] mono tracking-wide text-center py-8">
@@ -93,9 +96,19 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
 
   const uniqueProtocols = getUniqueProtocols(transactions);
 
-  const filtered = typeFilter === "all"
-    ? transactions
-    : transactions.filter((tx) => getProtocolFamily(tx.tx_type) === typeFilter);
+  const filtered = (() => {
+    let result = transactions;
+    if (typeFilter !== "all") {
+      result = result.filter((tx) => getProtocolFamily(tx.tx_type) === typeFilter);
+    }
+    if (typeFilter === "krc20" && tokenFilter !== "all") {
+      result = result.filter((tx) => {
+        const parts = tx.tx_type.split(":");
+        return parts[0] === "krc20" && parts[2] === tokenFilter;
+      });
+    }
+    return result;
+  })();
 
   return (
     <div className="flex flex-col h-full">
@@ -138,6 +151,19 @@ export default function TxList({ transactions, center, prices, typeFilter, onTyp
               );
             })}
           </div>
+        )}
+        {/* Token sub-filter when KRC20 is selected */}
+        {typeFilter === "krc20" && availableTokens.length > 0 && (
+          <select
+            value={tokenFilter}
+            onChange={(e) => onTokenFilterChange(e.target.value)}
+            className="field-input px-2 py-1 text-[10px] bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] rounded cursor-pointer w-full"
+          >
+            <option value="all">All tokens</option>
+            {availableTokens.map((tick) => (
+              <option key={tick} value={tick}>{tick}</option>
+            ))}
+          </select>
         )}
       </div>
       <div className="flex-1 overflow-auto">

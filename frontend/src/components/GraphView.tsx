@@ -86,6 +86,16 @@ function patternBadge(patterns: string[]): string {
 
 function edgeMatchesProtocol(e: GraphEdge, protocol: string): boolean {
   if (protocol === "all") return true;
+  // Token-level filter: "krc20:TICKER" matches any krc20 edge tx_type,
+  // and edges with matching ticker (krc20:op:TICKER) if available.
+  const tokenMatch = protocol.match(/^(\w+):([A-Z0-9]+)$/i);
+  if (tokenMatch) {
+    const [, family, ticker] = tokenMatch;
+    return Object.keys(e.tx_types).some((t) => {
+      const parts = t.split(":");
+      return parts[0] === family && parts[2] === ticker;
+    });
+  }
   return Object.keys(e.tx_types).some((t) => t === protocol || t.startsWith(protocol + ":"));
 }
 

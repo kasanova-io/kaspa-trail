@@ -64,6 +64,7 @@ export default function Home() {
 
   // Tx type filter
   const [txTypeFilter, setTxTypeFilter] = useState("all");
+  const [tokenFilter, setTokenFilter] = useState("all");
 
   // Path-finding state
   const [pathSource, setPathSource] = useState<string | null>(null);
@@ -220,12 +221,15 @@ export default function Home() {
       const existingEdgeIds = new Set(graph.edges.map((e) => e.id));
       const newNodes = data.nodes.filter((n) => !existingNodeIds.has(n.id));
       const newEdges = data.edges.filter((e) => !existingEdgeIds.has(e.id));
+      // Merge krc20_tokens from new batch
+      const mergedTokens = Array.from(new Set([...graph.krc20_tokens, ...data.krc20_tokens])).sort();
       setGraph({
         ...graph,
         nodes: [...graph.nodes, ...newNodes],
         edges: [...graph.edges, ...newEdges],
         transactions: [...graph.transactions, ...data.transactions],
         tx_loaded: graph.tx_loaded + data.tx_loaded,
+        krc20_tokens: mergedTokens,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load more");
@@ -369,6 +373,14 @@ export default function Home() {
     return PROTOCOL_ORDER.filter((p) => protocols.has(p));
   })();
 
+  // Available KRC20 tickers from oplist (backend-provided)
+  const availableTokens = graph?.krc20_tokens ?? [];
+
+  const handleProtocolFilterChange = useCallback((filter: string) => {
+    setTxTypeFilter(filter);
+    setTokenFilter("all");
+  }, []);
+
   return (
     <div className="h-screen flex flex-col relative z-10 md:overflow-hidden overflow-auto">
       {/* Header */}
@@ -453,8 +465,11 @@ export default function Home() {
           onLoadMore={handleLoadMore}
           loadingMore={loadingMore}
           protocolFilter={txTypeFilter}
-          onProtocolFilterChange={setTxTypeFilter}
+          onProtocolFilterChange={handleProtocolFilterChange}
           availableProtocols={availableProtocols}
+          tokenFilter={tokenFilter}
+          onTokenFilterChange={setTokenFilter}
+          availableTokens={availableTokens}
         />
       )}
 
@@ -470,7 +485,7 @@ export default function Home() {
               onSelectEdge={handleEdgeSelect}
               layout={layout}
               labels={labels}
-              protocolFilter={txTypeFilter}
+              protocolFilter={txTypeFilter === "krc20" && tokenFilter !== "all" ? `krc20:${tokenFilter}` : txTypeFilter}
             />
           ) : !loading ? (
             <div className="h-full flex items-center justify-center">
@@ -496,19 +511,12 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-                <div className="mt-6 flex justify-center gap-6 text-[10px] text-[var(--color-text-dim)]">
-                  <span className="flex items-center gap-1.5 uppercase tracking-widest">
-                    <span className="w-2 h-2 rounded-full bg-[#2ff2a8] opacity-40" />
-                    Graph
-                  </span>
-                  <span className="flex items-center gap-1.5 uppercase tracking-widest">
-                    <span className="w-2 h-2 rounded-full bg-[#ff9f1a] opacity-40" />
-                    Entities
-                  </span>
-                  <span className="flex items-center gap-1.5 uppercase tracking-widest">
-                    <span className="w-2 h-2 rounded-full bg-[#ff3a5c] opacity-40" />
-                    Patterns
-                  </span>
+                <div className="mt-6 flex justify-center flex-wrap gap-2 text-[10px]">
+                  <span className="px-2.5 py-1 rounded bg-[#3366aa22] text-[#6699dd] font-semibold tracking-wider uppercase">KAS</span>
+                  <span className="px-2.5 py-1 rounded bg-[#ff9f1a22] text-[#ff9f1a] font-semibold tracking-wider uppercase">KRC20</span>
+                  <span className="px-2.5 py-1 rounded bg-[#2ff2a822] text-[#2ff2a8] font-semibold tracking-wider uppercase">KNS</span>
+                  <span className="px-2.5 py-1 rounded bg-[#e6557022] text-[#e65570] font-semibold tracking-wider uppercase">KRC721</span>
+                  <span className="px-2.5 py-1 rounded bg-[#55bbff22] text-[#55bbff] font-semibold tracking-wider uppercase">Kasia</span>
                 </div>
                 <a
                   href="https://kasanova.app"
@@ -567,7 +575,10 @@ export default function Home() {
                   center={graph.center}
                   prices={prices}
                   typeFilter={txTypeFilter}
-                  onTypeFilterChange={setTxTypeFilter}
+                  onTypeFilterChange={handleProtocolFilterChange}
+                  tokenFilter={tokenFilter}
+                  onTokenFilterChange={setTokenFilter}
+                  availableTokens={availableTokens}
                 />
               )}
               {rightTab === "cases" && (
