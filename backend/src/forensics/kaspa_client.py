@@ -98,7 +98,11 @@ class KaspaClient:
                             self._tx_cache.set(f"tx:{key}", tx)
                             results[key] = tx
                 except Exception:
-                    logger.warning("Failed to fetch batch of %d transactions by hash", len(batch), exc_info=True)
+                    logger.warning(
+                        "Failed to fetch batch of %d transactions by hash",
+                        len(batch),
+                        exc_info=True,
+                    )
 
         return [results[tid.lower()] for tid in tx_ids if tid.lower() in results]
 

@@ -173,7 +173,11 @@ async def get_address_graph(
 
     # Fetch missing reveals incrementally, stopping once all P2SH outputs are matched.
     if unmatched_p2sh:
-        loaded_tx_ids = {tx["transaction_id"].lower() for tx in all_transactions if "transaction_id" in tx}
+        loaded_tx_ids = {
+            tx["transaction_id"].lower()
+            for tx in all_transactions
+            if "transaction_id" in tx
+        }
         missing_reveals = [tid for tid in krc20_ops if tid not in loaded_tx_ids]
         if missing_reveals:
             batch_size = 100
