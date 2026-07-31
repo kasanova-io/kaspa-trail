@@ -1,0 +1,71 @@
+name: Enforce dev-to-main promotion
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  enforce:
+    name: Require repository dev branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close pull requests that bypass dev
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const pullRequest = context.payload.pull_request;
+            const repository = `${context.repo.owner}/${context.repo.repo}`;
+            const isDevPromotion =
+              pullRequest.head.ref === 'dev' &&
+              pullRequest.head.repo?.full_name === repository;
+
+            if (isDevPromotion) {
+              core.notice('Valid dev-to-main promotion.');
+              return;
+            }
+
+            const marker = '<!-- kasanova-dev-main-policy -->';
+            const body = `${marker}
+            This pull request targets \`main\` but does not come from this repository's \`dev\` branch.
+
+            Required flow:
+            1. Open feature and fix branches against \`dev\`.
+            2. Promote to \`main\` only with a \`dev\` → \`main\` pull request.
+
+            This pull request has been closed. Retarget it to \`dev\`, or recreate it with the required base branch.`;
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                ...context.repo,
+                issue_number: pullRequest.number,
+                per_page: 100,
+              },
+            );
+
+            if (!comments.some((comment) => comment.body?.includes(marker))) {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: pullRequest.number,
+                body,
+              });
+            }
+
+            await github.rest.pulls.update({
+              ...context.repo,
+              pull_number: pullRequest.number,
+              state: 'closed',
+            });
+
+            core.setFailed('Only the repository dev branch may target main.');
