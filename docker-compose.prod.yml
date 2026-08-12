@@ -37,6 +37,7 @@ services:
         max-file: '3'
     networks:
       - caddy_caddy_net
+      - forensics_internal
 
   frontend:
     build:
@@ -69,9 +70,26 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
+    healthcheck:
+      # Slim image has no curl/wget; Node 22 has global fetch.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    # Egress lockdown (post-CVE-2025-55182): the frontend only needs to reach
+    # the backend and Caddy, so it sits solely on an internal network with no
+    # internet route. Caddy joins forensics_internal via /opt/caddy compose.
     networks:
-      - caddy_caddy_net
+      - forensics_internal
 
 networks:
   caddy_caddy_net:
     external: true
+  forensics_internal:
+    name: forensics_internal
+    internal: true
