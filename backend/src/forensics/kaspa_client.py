@@ -3,7 +3,10 @@
 
 import asyncio
 import logging
+import math
 import os
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import httpx
 
@@ -19,6 +22,24 @@ REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "30.0"))
 
 TX_CACHE_TTL = 3600.0  # 1 hour — confirmed transactions are immutable
 OPLIST_CACHE_TTL = 300.0  # 5 min — new ops may appear for active addresses
+RATE_LIMIT_RETRIES = 2
+MAX_RETRY_DELAY = 5.0
+
+
+def retry_after_seconds(value: str | None) -> float | None:
+    """Read Retry-After without shortening an upstream cooldown."""
+    if not value:
+        return None
+    if value.isascii() and value.isdigit():
+        delay = float(value)
+        return delay if math.isfinite(delay) else None
+    try:
+        retry_at = parsedate_to_datetime(value)
+        if retry_at.tzinfo is None:
+            return None
+        return max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+    except (ValueError, TypeError, OverflowError):
+        return None
 
 
 class KaspaClient:
@@ -27,14 +48,28 @@ class KaspaClient:
         self._client = httpx.AsyncClient(base_url=base_url, timeout=REQUEST_TIMEOUT)
         self._tx_cache = TTLCache(default_ttl=TX_CACHE_TTL, max_size=5000)
 
+    async def _get(self, path: str, **kwargs) -> httpx.Response:
+        for attempt in range(RATE_LIMIT_RETRIES + 1):
+            resp = await self._client.get(path, **kwargs)
+            if resp.status_code != 429 or attempt == RATE_LIMIT_RETRIES:
+                resp.raise_for_status()
+                return resp
+            delay = retry_after_seconds(resp.headers.get("Retry-After"))
+            if delay is None:
+                delay = 0.5 * 2**attempt
+            if delay > MAX_RETRY_DELAY:
+                # Let the caller retry later instead of holding the request open
+                # or retrying before the provider's stated cooldown expires.
+                resp.raise_for_status()
+            await asyncio.sleep(delay)
+        raise AssertionError("Unreachable retry state")
+
     async def get_balance(self, address: str) -> dict:
-        resp = await self._client.get(f"/addresses/{address}/balance")
-        resp.raise_for_status()
+        resp = await self._get(f"/addresses/{address}/balance")
         return resp.json()
 
     async def get_tx_count(self, address: str) -> dict:
-        resp = await self._client.get(f"/addresses/{address}/transactions-count")
-        resp.raise_for_status()
+        resp = await self._get(f"/addresses/{address}/transactions-count")
         return resp.json()
 
     async def get_full_transactions(
@@ -47,7 +82,7 @@ class KaspaClient:
         cached = self._tx_cache.get(cache_key)
         if cached is not None:
             return cached
-        resp = await self._client.get(
+        resp = await self._get(
             f"/addresses/{address}/full-transactions",
             params={
                 "limit": limit,
@@ -55,7 +90,6 @@ class KaspaClient:
                 "resolve_previous_outpoints": "light",
             },
         )
-        resp.raise_for_status()
         result = resp.json()
         if result:
             self._tx_cache.set(cache_key, result)
@@ -108,8 +142,7 @@ class KaspaClient:
 
     async def get_address_names(self) -> dict[str, str]:
         """Fetch all known address names. Returns {address: name} mapping."""
-        resp = await self._client.get("/addresses/names")
-        resp.raise_for_status()
+        resp = await self._get("/addresses/names")
         entries = resp.json()
         return {e["address"]: e["name"] for e in entries if "address" in e and "name" in e}
 
@@ -240,7 +273,9 @@ class KasplexClient:
             if cursor and results:
                 logger.warning(
                     "Kasplex oplist truncated at %d ops for %s (max_pages=%d reached)",
-                    len(ops), address[:20], max_pages,
+                    len(ops),
+                    address[:20],
+                    max_pages,
                 )
             else:
                 logger.debug("Loaded %d KRC20 ops for %s", len(ops), address[:20])
