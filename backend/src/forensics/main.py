@@ -3,16 +3,19 @@
 
 import asyncio
 import logging
+import math
 import os
 import re
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+import httpx
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from forensics.graph_builder import build_address_graph
-from forensics.kaspa_client import KaspaClient, KasplexClient, KnsClient
+from forensics.kaspa_client import KaspaClient, KasplexClient, KnsClient, retry_after_seconds
 from forensics.models import (
     AddressDetails,
     AddressGraph,
@@ -74,6 +77,37 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(httpx.HTTPStatusError)
+async def upstream_status_error(request: Request, exc: httpx.HTTPStatusError):
+    logger.warning("Upstream %s returned %d", exc.request.url.host, exc.response.status_code)
+    if exc.response.status_code == 429:
+        delay = retry_after_seconds(exc.response.headers.get("Retry-After"))
+        wait = max(1, math.ceil(delay)) if delay is not None else 30
+        return JSONResponse(
+            status_code=503,
+            headers={"Retry-After": str(wait)},
+            content={
+                "detail": "The data provider is rate limiting requests. "
+                f"Please try again in {wait} seconds."
+            },
+        )
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "The data provider is temporarily unavailable. Please try again shortly."
+        },
+    )
+
+
+@app.exception_handler(httpx.RequestError)
+async def upstream_request_error(request: Request, exc: httpx.RequestError):
+    logger.warning("Upstream %s failed: %s", exc.request.url.host, type(exc).__name__)
+    return JSONResponse(
+        status_code=504 if isinstance(exc, httpx.TimeoutException) else 503,
+        content={"detail": "Could not reach the data provider. Please try again shortly."},
+    )
+
+
 def _validate_address(address: str) -> None:
     if not KASPA_ADDRESS_RE.match(address):
         raise HTTPException(status_code=400, detail="Invalid Kaspa address format")
@@ -129,9 +163,6 @@ async def get_address_graph(
     offset = tx_offset
     target = min(tx_offset + tx_limit, tx_total)
 
-    # Fetch transactions and KRC20 operations concurrently
-    krc20_ops_future = kasplex_client.get_operations(address)
-
     while offset < target:
         batch_size = min(BATCH_SIZE, target - offset)
         batch = await client.get_full_transactions(address, limit=batch_size, offset=offset)
@@ -140,7 +171,7 @@ async def get_address_graph(
         all_transactions.extend(batch)
         offset += len(batch)
 
-    krc20_ops = await krc20_ops_future
+    krc20_ops = await kasplex_client.get_operations(address)
 
     # Build P2SH address → full op mapping from reveal transactions.
     # Reveals spend FROM P2SH addresses; commits send TO them.
@@ -174,9 +205,7 @@ async def get_address_graph(
     # Fetch missing reveals incrementally, stopping once all P2SH outputs are matched.
     if unmatched_p2sh:
         loaded_tx_ids = {
-            tx["transaction_id"].lower()
-            for tx in all_transactions
-            if "transaction_id" in tx
+            tx["transaction_id"].lower() for tx in all_transactions if "transaction_id" in tx
         }
         missing_reveals = [tid for tid in krc20_ops if tid not in loaded_tx_ids]
         if missing_reveals:
